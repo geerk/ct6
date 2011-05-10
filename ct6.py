@@ -19,34 +19,21 @@ class App():
 
         self.addobjectframe = tk.LabelFrame(self.master, text = "Add object")
         self.leftbar = tk.LabelFrame(self.master, text = "Changes")
-        self.leftbar.grid(row = 0, column = 0, sticky=tk.N+tk.E+tk.S+tk.W)
-        
-        self.rotationframe = tk.LabelFrame(self.leftbar, text = "Rotation")
-        self.rotationframe.grid(row = 0, column = 0)
-        
-        self.rotate_x_label = tk.Label(self.rotationframe, text = "x")
-        self.rotate_x_label.grid(row = 0, column = 0)
-        self.rotate_x_entry_var = tk.StringVar(value = "0")
-        self.rotate_x_entry = tk.Entry(self.rotationframe, textvariable = self.rotate_x_entry_var)
-        self.rotate_x_entry.grid(row = 0, column = 1)
-        
-        self.rotate_y_label = tk.Label(self.rotationframe, text = "y")
-        self.rotate_y_label.grid(row = 1, column = 0)
-        self.rotate_y_entry_var = tk.StringVar(value = "0")
-        self.rotate_y_entry = tk.Entry(self.rotationframe, textvariable = self.rotate_y_entry_var)
-        self.rotate_y_entry.grid(row = 1, column = 1)
-        
-        self.rotate_z_label = tk.Label(self.rotationframe, text = "z")
-        self.rotate_z_label.grid(row = 2, column = 0)
-        self.rotate_z_entry_var = tk.StringVar(value = "0")
-        self.rotate_z_entry = tk.Entry(self.rotationframe, textvariable = self.rotate_z_entry_var)
-        self.rotate_z_entry.grid(row = 2, column = 1)
-        
-        self.rotatebutton = tk.Button(self.rotationframe, text = "Rotate", command = self.rotatebutton_click)
-        self.rotatebutton.grid(row = 3, column = 1, sticky = tk.E)
-        
-        self.moveframe = tk.LabelFrame(self.leftbar, text = "Move")
-        self.moveframe.grid(row = 1, column = 0)
+        self.leftbar.grid(row = 0, column = 0, sticky=tk.N+tk.E+tk.S+tk.W)    
+      
+        axes = ("x", "y", "z")
+        frames = ("rotate", "move")
+        for f in frames:
+            exec 'self.%(frame)sframe = tk.LabelFrame(self.leftbar, text = "%(frame)s".title())' % {"frame":f}
+            exec 'self.%(frame)sframe.grid(row = frames.index("%(frame)s"), column = 0)' % {"frame":f}
+            for a in axes:
+                exec '%(frame)s_%(axis)s_label = tk.Label(self.%(frame)sframe, text = "%(axis)s")' % {"axis":a, "frame":f}
+                exec '%(frame)s_%(axis)s_label.grid(row = axes.index("%(axis)s"), column = 0)' % {"axis":a, "frame":f}
+                exec 'self.%(frame)s_%(axis)s_entry_var = tk.StringVar(value = "0")' % {"axis":a, "frame":f}
+                exec '%(frame)s_%(axis)s_entry = tk.Entry(self.%(frame)sframe, textvariable = self.%(frame)s_%(axis)s_entry_var)' % {"axis":a, "frame":f}
+                exec '%(frame)s_%(axis)s_entry.grid(row = axes.index("%(axis)s"), column = 1)' % {"axis":a, "frame":f}
+            exec '%(frame)sbutton = tk.Button(self.%(frame)sframe, text = "%(frame)s".title(), command = self.%(frame)sbutton_click)' % {"frame":f}
+            exec '%(frame)sbutton.grid(row = 3, column = 1, sticky = tk.E)' % {"frame":f}
         
         self.deletebutton = tk.Button(self.leftbar, text = "Delete", command = self.deletebutton_click)
         self.deletebutton.grid(row = 2, column = 0)
@@ -113,6 +100,12 @@ class App():
             self.__rotate(int(self.rotate_x_entry_var.get()),
                           int(self.rotate_y_entry_var.get()),
                           int(self.rotate_z_entry_var.get()))()
+
+    def movebutton_click(self):
+        if self.curobj:
+            self.draw_t(lambda i: i.move([int(self.move_x_entry_var.get()),
+                                          int(self.move_y_entry_var.get()),
+                                          int(self.move_z_entry_var.get())]))
 
     def deletebutton_click(self):
         if self.curobj:

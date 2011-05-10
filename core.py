@@ -35,6 +35,9 @@ class Bishop(object):
     def rotate(self, ox, oy, oz):
         for i in self.shapes:
             i.rotate(self.c[:], ox, oy, oz)
+            
+    def move(self, vec):
+        self.__init__(self.name, vec[:])
         
 class Cone(object):
     def __init__(self, init_p, (r1, r2, h), n = 9):
