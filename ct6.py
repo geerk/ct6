@@ -48,7 +48,8 @@ class App():
         self.moveframe = tk.LabelFrame(self.leftbar, text = "Move")
         self.moveframe.grid(row = 1, column = 0)
         
-        
+        self.deletebutton = tk.Button(self.leftbar, text = "Delete", command = self.deletebutton_click)
+        self.deletebutton.grid(row = 2, column = 0)
         
         self.canvasframe = tk.LabelFrame(self.master, text = "Scene")
         self.canvasframe.grid(row = 0, column = 1)
@@ -63,7 +64,7 @@ class App():
         self.angle = 0.1
         self.scale_rate = 0.05
         self.objects = {}
-        self.curobj = ""
+        self.curobj = ''
 
     def add_object(self):
         self.leftbar.grid_remove()
@@ -108,10 +109,22 @@ class App():
         self.leftbar.grid(row = 0, column = 0)
         
     def rotatebutton_click(self):
-        self.__rotate(int(self.rotate_x_entry_var.get()),
-                      int(self.rotate_y_entry_var.get()),
-                      int(self.rotate_z_entry_var.get()))()
-  
+        if self.curobj:
+            self.__rotate(int(self.rotate_x_entry_var.get()),
+                          int(self.rotate_y_entry_var.get()),
+                          int(self.rotate_z_entry_var.get()))()
+
+    def deletebutton_click(self):
+        if self.curobj:
+            for i in range(len(self.items[self.curobj])):
+                self.canvas.delete(self.items[self.curobj].pop())
+            del self.objects[self.curobj]
+            self.objectsmenu.delete(self.curobj)
+            if self.objects:
+                self.set_curobj(self.objects.keys()[-1])
+            else:
+                self.set_curobj('')
+
     def draw_t(self, fun):
         if self.items.has_key(self.curobj):
             for i in range(len(self.items[self.curobj])):
