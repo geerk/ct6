@@ -25,7 +25,7 @@ class matrix(object):
         for i in range(self.row):
             for j in range(other.col):
                 for k in range(other.row):
-                    self._matRes[i][j] += round(self.mat[i][k] * other.mat[k][j])
+                    self._matRes[i][j] += self.mat[i][k] * other.mat[k][j]
         return matrix(self._matRes)
     
     def tolist(self):

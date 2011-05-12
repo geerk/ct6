@@ -3,6 +3,14 @@ import core
 
 class App():
     def __init__(self, master):
+        self.items = {}
+        self.x = 0
+        self.y = 0
+        self.rotateangle = 1
+        self.scale_rate = 0.05
+        self.objects = {}
+        self.curobj = ''
+    
         self.master = master
         self.mainmenu = tk.Menu(self.master)
         self.master.config(menu = self.mainmenu)
@@ -19,8 +27,8 @@ class App():
 
         self.addobjectframe = tk.LabelFrame(self.master, text = "Add object")
         self.leftbar = tk.LabelFrame(self.master, text = "Changes")
-        self.leftbar.grid(row = 0, column = 0, sticky=tk.N+tk.E+tk.S+tk.W)    
-      
+        self.leftbar.grid(row = 0, column = 0, sticky=tk.N+tk.E+tk.S+tk.W)
+        
         axes = ("x", "y", "z")
         frames = ("rotate", "move")
         for f in frames:
@@ -44,14 +52,8 @@ class App():
         self.canvas.bind("<B1-Motion>", self.rotate)
         self.master.bind("<MouseWheel>", self.scale)
         self.canvas.grid(row = 0, column = 0)
-        
-        self.items = {}
-        self.x = 0
-        self.y = 0
-        self.angle = 0.1
-        self.scale_rate = 0.05
-        self.objects = {}
-        self.curobj = ''
+
+
 
     def add_object(self):
         self.leftbar.grid_remove()
@@ -97,9 +99,9 @@ class App():
         
     def rotatebutton_click(self):
         if self.curobj:
-            self.__rotate(int(self.rotate_x_entry_var.get()),
-                          int(self.rotate_y_entry_var.get()),
-                          int(self.rotate_z_entry_var.get()))()
+            self.draw_t(lambda i: i.rotate([int(self.rotate_x_entry_var.get()),
+                                            int(self.rotate_y_entry_var.get()),
+                                            int(self.rotate_z_entry_var.get())]))
 
     def movebutton_click(self):
         if self.curobj:
@@ -119,6 +121,7 @@ class App():
                 self.set_curobj('')
 
     def draw_t(self, fun):
+        if not self.curobj: return
         if self.items.has_key(self.curobj):
             for i in range(len(self.items[self.curobj])):
                 self.canvas.delete(self.items[self.curobj].pop())
@@ -133,12 +136,12 @@ class App():
         x = self.canvas.canvasx(e.x)
         y = self.canvas.canvasy(e.y)
         ox = self.x - x
-        oy = y - self.y
+        oy = self.y - y
         self.x, self.y = x, y
-        self.__rotate(ox, oy, 0)()
+        self.__rotate(ox * self.rotateangle, oy * self.rotateangle, 0)()
             
     def __rotate(self, ox, oy, oz):
-        return lambda : self.draw_t(lambda s: s.rotate(ox * self.angle, oy * self.angle, 0))
+        return lambda : self.draw_t(lambda s: s.rotate((ox, oy, 0)))
         
     def scale(self, e):
         if e.delta < 0:

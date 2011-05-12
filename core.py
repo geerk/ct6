@@ -32,7 +32,7 @@ class Bishop(object):
             t += i.project()
         return t
     
-    def rotate(self, ox, oy, oz):
+    def rotate(self, (ox, oy, oz)):
         for i in self.shapes:
             i.rotate(self.c[:], ox, oy, oz)
             
