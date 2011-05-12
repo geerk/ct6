@@ -62,11 +62,13 @@ class Cone(object):
     def __make_polygons(self, v):
         n = self.n
         t = [] #triangles
+        c1 = v[0:n]
+        c2 = v[n:n+n]
         for i in range(n):
-            i2 = (i + 1) % n
-            t += [[v[2 * n], v[i], v[i2]]]
-            t += [[v[2 * n + 1], v[n + i], v[n + i2]]]
-            t += [[v[i], v[n + i2], v[i2]]]
+            t += [[c1[i], c2[i], c1[i+1-n]]]
+            t += [[c1[i], c2[i], c2[i-1]]]
+            t += [[c1[i], c1[i+1-n], v[n+n]]]
+            t += [[c2[i], c2[i+1-n], v[n+n+1]]]
         self.t = t
         
     def __draw(self):
