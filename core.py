@@ -37,7 +37,11 @@ class Bishop(object):
             i.rotate(self.c[:], ox, oy, oz)
             
     def move(self, vec):
-        self.__init__(self.name, vec[:])
+        for i in range(len(vec)):
+            self.init_p[i] += vec[i]
+            self.c[i] += vec[i]
+        for i in self.shapes:
+            i.move(vec)
         
 class Cone(object):
     def __init__(self, init_p, (r1, r2, h), n = 9):
@@ -89,6 +93,11 @@ class Cone(object):
         
     def translate(self, vec):
         self.init_p = vec
+        self.__draw()
+        
+    def move(self, vec):
+        for i in range(len(vec)):
+            self.init_p[i] += vec[i]
         self.__draw()
         
     def rotate(self, base, oxa, oya, oza):
