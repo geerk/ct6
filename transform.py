@@ -2,23 +2,11 @@ from math import cos, sin, pi
 from math import radians as rad
 from matrix import matrix as mat
 
-def project(p, type = "ortho", c = 10):
-    if type == "ortho":
-        return (mat([p + [1]]) * mat([[1, 0, 0, 0],
-                                      [0, 1, 0, 0],
-                                      [0, 0, 0, 0],
-                                      [0, 0, 0, 1]])).tolist()[0][:2]
-    elif type == "oblique":
-        return (mat([p + [1]]) * mat([[   1,    0, 0, 0],
-                                      [   0,    1, 0, 0],
-                                      [pi/4, pi/4, 0, 0],
-                                      [   0,    0, 0, 1]])).tolist()[0][:2]
-    elif type == "central":
-        vec = (mat([p + [1]]) * mat([[1, 0, 0,   0],
-                                     [0, 1, 0,   0],
-                                     [0, 0, 0,   0],
-                                     [0, 0, 1/c, 1]])).tolist()[0]
-        return [vec[0]/vec[3], vec[1]/vec[3]]
+def project(p, prtype, c = 1000.0):
+    if prtype == "parallel":
+        return [p[0], p[1]]
+    elif prtype == "central":
+        return [p[0]/(1 - p[2] / c), p[1]/(1 - p[2] / c)]
 
 def translate(p, (m, n, l)):
     return (mat([p + [1]]) * mat([[1, 0, 0, 0],

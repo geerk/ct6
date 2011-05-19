@@ -26,10 +26,10 @@ class Bishop(object):
             tmp_init_p[2] += i[2]
         self.c[2] = tmp_init_p[2] / 2
             
-    def get_t(self):
+    def get_t(self, prtype):
         t = []
         for i in self.shapes:
-            t += i.project()
+            t += i.project(prtype)
         return t
     
     def rotate(self, (ox, oy, oz)):
@@ -88,8 +88,8 @@ class Cone(object):
         v = [tr.scale(i, self.scale_point, self.sx, self.sy, self.sz) for i in v]
         self.__make_polygons(v)
         
-    def project(self):
-        return [[tr.project(j) for j in i] for i in self.t]
+    def project(self, prtype):
+        return [[tr.project(j, prtype) for j in i] for i in self.t]
         
     def translate(self, vec):
         self.init_p = vec

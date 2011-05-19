@@ -10,19 +10,24 @@ class App():
         self.scale_rate = 0.05
         self.objects = {}
         self.curobj = ''
+        self.prtype = "parallel" #type of projection
     
         self.master = master
         self.mainmenu = tk.Menu(self.master)
         self.master.config(menu = self.mainmenu)
-        self.filemenu = tk.Menu(self.mainmenu)
+        self.filemenu = tk.Menu(self.mainmenu, tearoff=0)
         self.mainmenu.add_cascade(label = "File", menu = self.filemenu)
-        self.transformmenu = tk.Menu(self.mainmenu)
+        self.transformmenu = tk.Menu(self.mainmenu, tearoff=0)
         self.mainmenu.add_cascade(label = "Transform", menu = self.transformmenu)
         self.transformmenu.add_command(label = "Hide", command = self.hide)
-        self.scenemenu = tk.Menu(self.mainmenu)
+        self.scenemenu = tk.Menu(self.mainmenu, tearoff=0)
         self.mainmenu.add_cascade(label = "Scene", menu = self.scenemenu)
         self.scenemenu.add_command(label = "Add object", command = self.add_object)
-        self.objectsmenu = tk.Menu(self.mainmenu)
+        self.projectionmenu = tk.Menu(self.scenemenu, tearoff=0)
+        self.scenemenu.add_cascade(label = "Projection", menu = self.projectionmenu)
+        self.projectionmenu.add_command(label = "Parallel", command = self.projectparallel)
+        self.projectionmenu.add_command(label = "Central", command = self.projectcentral)
+        self.objectsmenu = tk.Menu(self.mainmenu, tearoff=0)
         self.mainmenu.add_cascade(label = "Objects", menu = self.objectsmenu)
 
         self.addobjectframe = tk.LabelFrame(self.master, text = "Add object")
@@ -53,8 +58,6 @@ class App():
         self.master.bind("<MouseWheel>", self.scale)
         self.canvas.grid(row = 0, column = 0)
 
-
-
     def add_object(self):
         self.leftbar.grid_remove()
         self.addobjectframe.grid(row = 0, column = 0, sticky=tk.N+tk.E+tk.S+tk.W)
@@ -81,6 +84,14 @@ class App():
         addbutton.grid(row = 2, column = 0)
         cancelbutton = tk.Button(self.addobjectframe, text = "Cancel", command = self.hide_addobjectframe)
         cancelbutton.grid(row = 2, column = 1)
+        
+    def projectparallel(self):
+        self.prtype = "parallel"
+        self.draw_t(lambda i: i)
+
+    def projectcentral(self):
+        self.prtype = "central"
+        self.draw_t(lambda i: i)
         
     def addbutton_click(self, name, x, y, z):
         self.objects[name] = core.Bishop(name, [x, y, z])
@@ -129,7 +140,7 @@ class App():
             self.items[self.curobj] = []
         obj = self.objects[self.curobj]
         fun(obj)
-        for i in obj.get_t():
+        for i in obj.get_t(self.prtype):
             self.items[self.curobj].append(self.canvas.create_polygon(i, outline = "black", fill = ""))
         
     def rotate(self, e):
