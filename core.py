@@ -41,11 +41,25 @@ class Bishop(object):
             params = getattr(self, name) + modifparams
             self.shapes[name] = Cone(tmp_init_p[:], self.c[:], params)
             tmp_init_p[2] += params[2]
-            
-    def get_t(self, prtype):
+
+
+    def cmpt(self, t1, t2):
+        d1 = min([k[2] for k in t1])
+        d2 = min([k[2] for k in t2])
+        if d1 < d2: return -1
+        if d1 > d2: return 1
+        return 0
+
+    def get_t(self, prtype, hide):
         t = []
-        for i in self.shapes.values():
-            t += i.project(prtype)
+        if hide:
+            for i in self.shapes.values():
+                t += i.t
+            t.sort(self.cmpt)
+            return [[tr.project(j, prtype) for j in i] for i in t]
+        else:
+            for i in self.shapes.values():
+                t += i.project(prtype)
         return t
     
     def rotate(self, (ox, oy, oz)):

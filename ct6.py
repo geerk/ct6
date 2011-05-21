@@ -7,6 +7,7 @@ class App():
         self.items = {}
         self.x = 0
         self.y = 0
+        self.hide = False
         self.rotateangle = 1
         self.scale_rate = 0.05
         self.objects = {}
@@ -20,12 +21,10 @@ class App():
         self.mainmenu.add_cascade(label = "File", menu = self.filemenu)
         self.filemenu.add_command(label = "Save as...", command = self.save)
         self.filemenu.add_command(label = "Load", command = self.load)
-        self.transformmenu = tk.Menu(self.mainmenu, tearoff=0)
-        self.mainmenu.add_cascade(label = "Transform", menu = self.transformmenu)
-        self.transformmenu.add_command(label = "Hide", command = self.hide)
         self.scenemenu = tk.Menu(self.mainmenu, tearoff=0)
         self.mainmenu.add_cascade(label = "Scene", menu = self.scenemenu)
         self.scenemenu.add_command(label = "Add object", command = self.add_object)
+        self.scenemenu.add_command(label = "Hide faces", command = self.hide_faces)
         self.projectionmenu = tk.Menu(self.scenemenu, tearoff=0)
         self.scenemenu.add_cascade(label = "Projection", menu = self.projectionmenu)
         self.projectionmenu.add_command(label = "Parallel", command = self.projectparallel)
@@ -56,7 +55,7 @@ class App():
         
         self.canvasframe = tk.LabelFrame(self.master, text = "Scene")
         self.canvasframe.grid(row = 0, column = 1)
-        self.canvas = tk.Canvas(self.canvasframe, height = 500, width = 500)
+        self.canvas = tk.Canvas(self.canvasframe, height = 500, width = 500, bg = "black")
         self.canvas.bind("<B1-Motion>", self.rotate)
         self.master.bind("<MouseWheel>", self.scale)
         self.canvas.grid(row = 0, column = 0)
@@ -152,8 +151,8 @@ class App():
             self.items[self.curobj] = []
         obj = self.objects[self.curobj]
         fun(obj)
-        for i in obj.get_t(self.prtype):
-            self.items[self.curobj].append(self.canvas.create_polygon(i, outline = "black", fill = ""))
+        for i in obj.get_t(self.prtype, self.hide):
+            self.items[self.curobj].append(self.canvas.create_polygon(i, outline = "white", fill = self.hide and "black" or ""))
         
     def rotate(self, e):
         x = self.canvas.canvasx(e.x)
@@ -173,8 +172,11 @@ class App():
             sign = 1
         self.draw_t(lambda s: s.scale(self.c, self.scale_rate * sign))
         
-    def hide(self):
-        pass
+    def hide_faces(self):
+        if self.hide: self.scenemenu.entryconfigure(1, label =   "Hide faces")
+        else:         self.scenemenu.entryconfigure(1, label = "Unhide faces")
+        self.hide = not self.hide
+        self.draw_t(lambda i: i)
         
     def load(self):
         filename = tkFileDialog.askopenfilename(defaultextension=".scene")
