@@ -76,6 +76,13 @@ class Bishop(object):
         for i in self.shapes.values():
             i.move(vec)
     
+    def scale(self, (sx, sy, sz)):
+        self.sx += sx
+        self.sy += sy
+        self.sz += sz
+        for i in self.shapes.values():
+            i.scale(self.c[:], self.sx, self.sy, self.sz)
+    
     def __repr__(self):
         #do not change, it's write-only
         s =  '{\\\n\t"name": ' + repr(self.name) + ',\\\n' + \

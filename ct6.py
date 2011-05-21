@@ -37,21 +37,24 @@ class App():
         self.leftbar.grid(row = 0, column = 0, sticky=tk.N+tk.E+tk.S+tk.W)
         
         axes = ("x", "y", "z")
-        frames = ("rotate", "move")
+        frames = ("rotate", "move", "scale")
         for f in frames:
-            exec 'self.%(frame)sframe = tk.LabelFrame(self.leftbar, text = "%(frame)s".title())' % {"frame":f}
-            exec 'self.%(frame)sframe.grid(row = frames.index("%(frame)s"), column = 0)' % {"frame":f}
+            exec 'self.%(f)sframe = tk.LabelFrame(self.leftbar, text = "%(f)s".title())' % {"f":f}
+            exec 'self.%(f)sframe.grid(row = frames.index("%(f)s"), column = 0)' % {"f":f}
             for a in axes:
-                exec '%(frame)s_%(axis)s_label = tk.Label(self.%(frame)sframe, text = "%(axis)s")' % {"axis":a, "frame":f}
-                exec '%(frame)s_%(axis)s_label.grid(row = axes.index("%(axis)s"), column = 0)' % {"axis":a, "frame":f}
-                exec 'self.%(frame)s_%(axis)s_entry_var = tk.StringVar(value = "0")' % {"axis":a, "frame":f}
-                exec '%(frame)s_%(axis)s_entry = tk.Entry(self.%(frame)sframe, textvariable = self.%(frame)s_%(axis)s_entry_var)' % {"axis":a, "frame":f}
-                exec '%(frame)s_%(axis)s_entry.grid(row = axes.index("%(axis)s"), column = 1)' % {"axis":a, "frame":f}
-            exec '%(frame)sbutton = tk.Button(self.%(frame)sframe, text = "%(frame)s".title(), command = self.%(frame)sbutton_click)' % {"frame":f}
-            exec '%(frame)sbutton.grid(row = 3, column = 1, sticky = tk.E)' % {"frame":f}
+                exec '%(f)s_%(a)s_label = tk.Label(self.%(f)sframe, text = "%(a)s")' % {"a":a, "f":f}
+                exec '%(f)s_%(a)s_label.grid(row = axes.index("%(a)s"), column = 0)' % {"a":a, "f":f}
+                exec 'self.%(f)s_%(a)s_entry_var = tk.StringVar(value = "0")' % {"a":a, "f":f}
+                exec '%(f)s_%(a)s_entry = tk.Entry(self.%(f)sframe, textvariable = self.%(f)s_%(a)s_entry_var)' % {"a":a, "f":f}
+                exec '%(f)s_%(a)s_entry.grid(row = axes.index("%(a)s"), column = 1)' % {"a":a, "f":f}
+            exec 'self.%(f)sbutton_click = lambda self = self: self.draw_t(lambda i: i.%(f)s([int(self.%(f)s_x_entry_var.get()),\
+                                                                                              int(self.%(f)s_y_entry_var.get()),\
+                                                                                              int(self.%(f)s_z_entry_var.get())]))' % {"f":f}
+            exec '%(f)sbutton = tk.Button(self.%(f)sframe, text = "%(f)s".title(), command = self.%(f)sbutton_click)' % {"f":f}
+            exec '%(f)sbutton.grid(row = 3, column = 1, sticky = tk.E)' % {"f":f}
         
         self.deletebutton = tk.Button(self.leftbar, text = "Delete", command = self.deletebutton_click)
-        self.deletebutton.grid(row = 2, column = 0)
+        self.deletebutton.grid(row = 3, column = 0)
         
         self.canvasframe = tk.LabelFrame(self.master, text = "Scene")
         self.canvasframe.grid(row = 0, column = 1)
@@ -112,24 +115,6 @@ class App():
     def hide_addobjectframe(self):
         self.addobjectframe.grid_remove()
         self.leftbar.grid(row = 0, column = 0)
-        
-    def rotatebutton_click(self):
-        if self.curobj:
-            self.draw_t(lambda i: i.rotate([int(self.rotate_x_entry_var.get()),
-                                            int(self.rotate_y_entry_var.get()),
-                                            int(self.rotate_z_entry_var.get())]))
-            self.rotate_x_entry_var.set('0')
-            self.rotate_y_entry_var.set('0')
-            self.rotate_z_entry_var.set('0')
-
-    def movebutton_click(self):
-        if self.curobj:
-            self.draw_t(lambda i: i.move([int(self.move_x_entry_var.get()),
-                                          int(self.move_y_entry_var.get()),
-                                          int(self.move_z_entry_var.get())]))
-            self.move_x_entry_var.set('0')
-            self.move_y_entry_var.set('0')
-            self.move_z_entry_var.set('0')                                          
 
     def deletebutton_click(self):
         if self.curobj:
