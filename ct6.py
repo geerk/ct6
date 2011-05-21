@@ -1,4 +1,5 @@
 import Tkinter as tk
+import tkFileDialog
 import core
 
 class App():
@@ -17,6 +18,8 @@ class App():
         self.master.config(menu = self.mainmenu)
         self.filemenu = tk.Menu(self.mainmenu, tearoff=0)
         self.mainmenu.add_cascade(label = "File", menu = self.filemenu)
+        self.filemenu.add_command(label = "Save as...", command = self.save)
+        self.filemenu.add_command(label = "Load", command = self.load)
         self.transformmenu = tk.Menu(self.mainmenu, tearoff=0)
         self.mainmenu.add_cascade(label = "Transform", menu = self.transformmenu)
         self.transformmenu.add_command(label = "Hide", command = self.hide)
@@ -57,6 +60,9 @@ class App():
         self.canvas.bind("<B1-Motion>", self.rotate)
         self.master.bind("<MouseWheel>", self.scale)
         self.canvas.grid(row = 0, column = 0)
+        
+        self.paramframe = tk. LabelFrame(self.master, text = "Parameters")
+        self.paramframe.grid(row = 0, column = 2)
 
     def add_object(self):
         self.leftbar.grid_remove()
@@ -94,7 +100,7 @@ class App():
         self.draw_t(lambda i: i)
         
     def addbutton_click(self, name, x, y, z):
-        self.objects[name] = core.Bishop(name, [x, y, z])
+        self.objects[name] = core.Bishop(name = name, init_p = [x, y, z])
         self.set_curobj(name)
         self.draw_t(lambda i: i)
         self.hide_addobjectframe()
@@ -113,12 +119,18 @@ class App():
             self.draw_t(lambda i: i.rotate([int(self.rotate_x_entry_var.get()),
                                             int(self.rotate_y_entry_var.get()),
                                             int(self.rotate_z_entry_var.get())]))
+            self.rotate_x_entry_var.set('0')
+            self.rotate_y_entry_var.set('0')
+            self.rotate_z_entry_var.set('0')
 
     def movebutton_click(self):
         if self.curobj:
             self.draw_t(lambda i: i.move([int(self.move_x_entry_var.get()),
                                           int(self.move_y_entry_var.get()),
                                           int(self.move_z_entry_var.get())]))
+            self.move_x_entry_var.set('0')
+            self.move_y_entry_var.set('0')
+            self.move_z_entry_var.set('0')                                          
 
     def deletebutton_click(self):
         if self.curobj:
@@ -164,6 +176,28 @@ class App():
     def hide(self):
         pass
         
+    def load(self):
+        filename = tkFileDialog.askopenfilename(defaultextension=".scene")
+        if filename:
+            for key in self.objects:
+                self.objectsmenu.delete(key)
+            self.objects.clear()
+            l = {'objects':{}}
+            execfile(filename, l)
+            for key in l['objects']:
+                self.objects[key] = core.Bishop(**l['objects'][key])
+                self.set_curobj(key)
+                self.draw_t(lambda i: i)
+                self.objectsmenu.add_command(label = key, command = lambda name = key: self.set_curobj(name))
+        
+    def save(self):
+        filename = tkFileDialog.asksaveasfilename(defaultextension=".scene")
+        if filename:
+            s = 'objects = {\\\n'
+            for obj in self.objects:
+                s += '"' + obj + '": ' + repr(self.objects[obj]) + ',\n'
+            open(filename, "w").write(s + '}')
+
 if __name__ == "__main__":
     root = tk.Tk()
     app = App(root)

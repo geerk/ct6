@@ -1,57 +1,87 @@
 import transform as tr
 
 class Bishop(object):
-    def __init__(self, name, init_p):
-        self.name = name
-        self.init_p = init_p
+    def __init__(self, **kwargs):
+        self.name = 'obj'
+        self.init_p = [0, 0, 0]
+        self.cylA = [10, 10, 5]
+        self.coneB = [10, 30, 40]
+        self.coneC = [30, 10, 40]
+        self.cylD = [15, 15,  5]
+        self.cylE = [10, 10, 15]
+        self.cylF = [30, 30, 10]
+        self.cylG = [10, 10,  5]
+        self.cylH = [50, 50, 10]
+        self.coneI = [10, 30, 100]
+        self.cylJ = [40, 40, 20]
+        self.coneK = [40, 70, 40]
+        self.cylL = [70, 70,  5]
+        self.cylM = [65, 65,  5]
+        self.cylN = [70, 70, 10]
+        self.oxa = 0
+        self.oya = 0
+        self.oza = 0
+        self.sx = 1
+        self.sy = 1
+        self.sz = 1
+        
+        for key in kwargs:
+            exec 'self.%s = kwargs[key]' % (key, ) #to add a test
+        
+        self.namesofshapes = ('cylA', 'coneB', 'coneC', 'cylD', 'cylE',
+                              'cylF', 'cylG', 'cylH', 'coneI', 'cylJ',
+                              'coneK', 'cylL', 'cylM', 'cylN')
         self.c = self.init_p[:]
-        self.params = [[10, 10,  5],
-                       [10, 30, 40],
-                       [30, 10, 40],
-                       [15, 15,  5],
-                       [10, 10, 15],
-                       [30, 30, 10],
-                       [10, 10,  5],
-                       [50, 50, 10],
-                       [10, 30, 100],
-                       [40, 40, 20],
-                       [40, 70, 40],
-                       [70, 70,  5],
-                       [65, 65,  5],
-                       [70, 70, 10]]
-        self.shapes = []
+        #calculating base point (for rotation, scaling, etc.)
+        for j in [getattr(self, i)[2] for i in self.namesofshapes]: self.c[2] += j / 2.0
+        self.shapes = {}
         tmp_init_p = self.init_p[:]
-        for i in self.params:
-            self.shapes.append(Cone(tmp_init_p[:], i))
-            tmp_init_p[2] += i[2]
-        self.c[2] = tmp_init_p[2] / 2
+        modifparams = [self.oxa, self.oya, self.oza, self.sx, self.sy, self.sz]
+        for name in self.namesofshapes:
+            params = getattr(self, name) + modifparams
+            self.shapes[name] = Cone(tmp_init_p[:], self.c[:], params)
+            tmp_init_p[2] += params[2]
             
     def get_t(self, prtype):
         t = []
-        for i in self.shapes:
+        for i in self.shapes.values():
             t += i.project(prtype)
         return t
     
     def rotate(self, (ox, oy, oz)):
-        for i in self.shapes:
-            i.rotate(self.c[:], ox, oy, oz)
+        self.oxa += ox
+        self.oya += oy
+        self.oza += oz
+        for i in self.shapes.values():
+            i.rotate(self.c[:], self.oxa, self.oya, self.oza)
             
     def move(self, vec):
         for i in range(len(vec)):
             self.init_p[i] += vec[i]
             self.c[i] += vec[i]
-        for i in self.shapes:
+        for i in self.shapes.values():
             i.move(vec)
+    
+    def __repr__(self):
+        #do not change, it's write-only
+        s =  '{\\\n\t"name": ' + repr(self.name) + ',\\\n' + \
+                '\t"init_p": ' + repr(self.init_p) + ',\\\n'
+        for name in self.namesofshapes:
+            s += '\t"' + name + '":' + repr(getattr(self, name)) + ',\\\n'
+        for axis in ('x', 'y', 'z'):
+            exec 's += "\\t\'o%(a)sa\':" + repr(self.o%(a)sa) + ",\\\\\\n"' % {"a":axis}
+            exec 's += "\\t\'s%(a)s\':" + repr(self.s%(a)s) + ",\\\\\\n"' % {"a":axis}
+        return s + '}'
         
 class Cone(object):
-    def __init__(self, init_p, (r1, r2, h), n = 9):
+    def __init__(self, init_p, base, (r1, r2, h, oxa, oya, oza, sx, sy, sz), n = 9):
         self.v = tuple() #vertex
         self.t = [] #triangles
         #radius, height, number of sectors:
         self.init_p, self.r1, self.r2, self.h, self.n = init_p, r1, r2, h, n
-        self.rotate_point = self.scale_point = self.init_p
-        self.ox_angle = self.oy_angle = self.oz_angle = 0 #rotation angles
-        self.sx = self.sy = self.sz = 1 #scale rate
+        self.rotate_point = self.scale_point = base
+        self.ox_angle, self.oy_angle, self.oz_angle = oxa, oya, oza #rotation angles
+        self.sx, self.sy, self.sz = sx, sy, sz #scale rate
         self.__make_vertex()
         self.__draw()
         
@@ -102,14 +132,14 @@ class Cone(object):
         
     def rotate(self, base, oxa, oya, oza):
         self.rotate_point = base
-        self.ox_angle += oxa
-        self.oy_angle += oya
-        self.oz_angle += oza
+        self.ox_angle = oxa
+        self.oy_angle = oya
+        self.oz_angle = oza
         self.__draw()
         
-    def scale(self, base, s):
+    def scale(self, base, sx, sy, sz):
         self.scale_point = base
-        self.sx += s
-        self.sy += s
-        self.sz += s
+        self.sx = sx
+        self.sy = sy
+        self.sz = sz
         self.__draw()
