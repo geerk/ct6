@@ -8,6 +8,7 @@ class App():
         self.x = 0
         self.y = 0
         self.hide = False
+        self.color = "white"
         self.rotateangle = 1
         self.scale_rate = 0.05
         self.objects = {}
@@ -23,7 +24,6 @@ class App():
         self.filemenu.add_command(label = "Load", command = self.load)
         self.scenemenu = tk.Menu(self.mainmenu, tearoff=0)
         self.mainmenu.add_cascade(label = "Scene", menu = self.scenemenu)
-        self.scenemenu.add_command(label = "Add object", command = self.add_object)
         self.scenemenu.add_command(label = "Hide faces", command = self.hide_faces)
         self.projectionmenu = tk.Menu(self.scenemenu, tearoff=0)
         self.scenemenu.add_cascade(label = "Projection", menu = self.projectionmenu)
@@ -42,56 +42,107 @@ class App():
             exec 'self.%(f)sframe = tk.LabelFrame(self.leftbar, text = "%(f)s".title())' % {"f":f}
             exec 'self.%(f)sframe.grid(row = frames.index("%(f)s"), column = 0)' % {"f":f}
             for a in axes:
-                exec '%(f)s_%(a)s_label = tk.Label(self.%(f)sframe, text = "%(a)s")' % {"a":a, "f":f}
-                exec '%(f)s_%(a)s_label.grid(row = axes.index("%(a)s"), column = 0)' % {"a":a, "f":f}
-                exec 'self.%(f)s_%(a)s_entry_var = tk.StringVar(value = "0")' % {"a":a, "f":f}
-                exec '%(f)s_%(a)s_entry = tk.Entry(self.%(f)sframe, textvariable = self.%(f)s_%(a)s_entry_var)' % {"a":a, "f":f}
-                exec '%(f)s_%(a)s_entry.grid(row = axes.index("%(a)s"), column = 1)' % {"a":a, "f":f}
-            exec 'self.%(f)sbutton_click = lambda self = self: self.draw_t(lambda i: i.%(f)s([int(self.%(f)s_x_entry_var.get()),\
-                                                                                              int(self.%(f)s_y_entry_var.get()),\
-                                                                                              int(self.%(f)s_z_entry_var.get())]))' % {"f":f}
-            exec '%(f)sbutton = tk.Button(self.%(f)sframe, text = "%(f)s".title(), command = self.%(f)sbutton_click)' % {"f":f}
-            exec '%(f)sbutton.grid(row = 3, column = 1, sticky = tk.E)' % {"f":f}
+                exec '%(f)s%(a)slabel = tk.Label(self.%(f)sframe, text = "%(a)s")' % {"a":a, "f":f}
+                exec '%(f)s%(a)slabel.grid(row = axes.index("%(a)s"), column = 0)' % {"a":a, "f":f}
+                exec 'self.%(f)s%(a)sevar = tk.StringVar(value = "0")' % {"a":a, "f":f}
+                exec '%(f)s%(a)se = tk.Entry(self.%(f)sframe, textvariable = self.%(f)s%(a)sevar)' % {"a":a, "f":f}
+                exec '%(f)s%(a)se.grid(row = axes.index("%(a)s"), column = 1)' % {"a":a, "f":f}
+            exec 'self.%(f)sbclick = lambda self = self: self.draw_t(\
+                lambda i: i.%(f)s([float(self.%(f)sxevar.get()), float(self.%(f)syevar.get()), float(self.%(f)szevar.get())]))' % {"f":f}
+            exec '%(f)sb = tk.Button(self.%(f)sframe, text = "%(f)s".title(), command = self.%(f)sbclick)' % {"f":f}
+            exec '%(f)sb.grid(row = 3, column = 1, sticky = tk.E)' % {"f":f}
         
         self.deletebutton = tk.Button(self.leftbar, text = "Delete", command = self.deletebutton_click)
         self.deletebutton.grid(row = 3, column = 0)
-        
+        self.draw_t(lambda i: i)
         self.canvasframe = tk.LabelFrame(self.master, text = "Scene")
         self.canvasframe.grid(row = 0, column = 1)
         self.canvas = tk.Canvas(self.canvasframe, height = 500, width = 500, bg = "black")
-        self.canvas.bind("<B1-Motion>", self.rotate)
-        self.master.bind("<MouseWheel>", self.scale)
         self.canvas.grid(row = 0, column = 0)
         
         self.paramframe = tk. LabelFrame(self.master, text = "Parameters")
-        self.paramframe.grid(row = 0, column = 2)
+        self.paramframe.grid(row = 0, column = 2, sticky=tk.N+tk.E+tk.S+tk.W)
+                
+        pvars = {}
+        namelabel = tk.Label(self.paramframe, text = "Object name")
+        namelabel.grid(row = 0, column = 0, sticky=tk.N+tk.E+tk.S+tk.W)
+        nameevar = tk.StringVar(value = "obj")
+        namee = tk.Entry(self.paramframe, textvariable = nameevar, width = 10)
+        namee.grid(row = 0, column = 1)
+        pvars["name"] = namee.get
+        
+        initpointframe = tk.LabelFrame(self.paramframe, text = "Init point")
+        initpointframe.grid(row = 1, column = 0, columnspan = 2, sticky=tk.N+tk.E+tk.S+tk.W)
+        names = ('init x', 'init y', 'init z')
+        for n in names:
+            var = "".join(n.split())
+            exec '%(v)sl = tk.Label(initpointframe, text = "%(n)s")' % {'v': var, 'n': n}
+            exec '%(v)sl.grid(row = names.index(n), column = 0)' % {'v': var}
+            exec '%(v)sevar = tk.StringVar(value = "0")' % {'v':var}
+            exec '%(v)se = tk.Entry(initpointframe, textvariable = %(v)sevar)' % {'v': var}
+            exec '%(v)se.grid(row = names.index(n), column = 1)' % {'v': var}
+            exec 'pvars["%(v)s"] = %(v)se.get' % {'v': var} #add 'get' function to pvars
+            
+        nos = {'cyl A r': 10, 'cone B bottom r cone C top r': 30, 'cone C bottom r cone B top r': 10,
+               'cone B h': 40, 'cone C h': 40, 'cyl D r': 15, 'cone I top r cyl E G r': 10,
+               'cyl F r': 30, 'cyl H r': 50, 'cone I h': 100, 'cyl J r': 40,
+               'cone K h': 40, 'cone K top r': 40, 'cone K bottom r': 70, 'cyl M r': 65, 'cyl N L r': 70}
+        i = 0
+        for n in nos:
+            var = "".join(n.split())
+            exec '%(v)sl = tk.Label(self.paramframe, text = "%(n)s")' % {'v': var, 'n': n}
+            exec '%(v)sl.grid(row = i + 2, column = 0)' % {'v': var}
+            exec '%(v)sevar = tk.StringVar(value = "%(value)s")' % {'v':var, 'value': str(nos[n])}
+            exec '%(v)se = tk.Entry(self.paramframe, textvariable = %(v)sevar)' % {'v': var}
+            exec '%(v)se.grid(row = i + 2, column = 1)' % {'v': var}
+            exec 'pvars["%(v)s"] = %(v)se.get' % {'v': var} #add 'get' function to pvars
+            i += 1
+        
+        addbutton = tk.Button(self.paramframe, text = "Add new objects",
+            command = lambda self = self, pvars = pvars: self.applyparams('add', pvars))
+        addbutton.grid(row = len(nos) + 2, column = 0)
+        setbutton = tk.Button(self.paramframe, text = "Set params",
+            command = lambda self = self, pvars = pvars: self.applyparams('set', pvars))
+        setbutton.grid(row = len(nos) + 2, column = 1)
 
-    def add_object(self):
-        self.leftbar.grid_remove()
-        self.addobjectframe.grid(row = 0, column = 0, sticky=tk.N+tk.E+tk.S+tk.W)
-        namelabel = tk.Label(self.addobjectframe, text = "Object name")
-        namelabel.grid(row = 0, column = 0)
-        nameentry = tk.Entry(self.addobjectframe, width = 10)
-        nameentry.grid(row = 0, column = 1)
-        initpointframe = tk.LabelFrame(self.addobjectframe, text = "Init point")
-        initpointframe.grid(row = 1, column = 0, columnspan = 2)
-        labelx = tk.Label(initpointframe, text = "x")
-        labelx.grid(row = 0, column = 0)
-        labely = tk.Label(initpointframe, text = "y")
-        labely.grid(row = 1, column = 0)
-        labelz = tk.Label(initpointframe, text = "z")
-        labelz.grid(row = 2, column = 0)
-        entryx = tk.Entry(initpointframe)
-        entryx.grid(row = 0, column = 1)
-        entryy = tk.Entry(initpointframe)
-        entryy.grid(row = 1, column = 1)
-        entryz = tk.Entry(initpointframe)
-        entryz.grid(row = 2, column = 1)
-        addbutton = tk.Button(self.addobjectframe, text = "Add",
-            command = lambda : self.addbutton_click(nameentry.get(), int(entryx.get()), int(entryy.get()), int(entryz.get())))
-        addbutton.grid(row = 2, column = 0)
-        cancelbutton = tk.Button(self.addobjectframe, text = "Cancel", command = self.hide_addobjectframe)
-        cancelbutton.grid(row = 2, column = 1)
+    def applyparams(self, action, vars_):
+        name = callable(vars_['name']) and vars_['name']() or vars_['name']
+        if action in ('add', 'set'):
+            v = {}
+            for key in vars_ :
+                if key == 'name': continue
+                if callable(vars_[key]): v[key] = float(vars_[key]())
+                else:                    v[key] = float(vars_[key])
+            params = {
+                'name': name,
+                'init_p': [v['initx'], v['inity'], v['initz']],
+                'cylA': [v['cylAr'], v['cylAr'], None],
+                'coneB': [v['coneCbottomrconeBtopr'], v['coneBbottomrconeCtopr'], v['coneBh']],
+                'coneC': [v['coneBbottomrconeCtopr'], v['coneCbottomrconeBtopr'], v['coneCh']],
+                'cylD': [v['cylDr'], v['cylDr'], None],
+                'cylE': [v['coneItoprcylEGr'], v['coneItoprcylEGr'], None],
+                'cylF': [v['cylFr'], v['cylFr'], None],
+                'cylG': [v['coneItoprcylEGr'], v['coneItoprcylEGr'], None],
+                'cylH': [v['cylHr'], v['cylHr'], None],
+                'coneI': [v['coneItoprcylEGr'], None, v['coneIh']],
+                'cylJ': [v['cylJr'], v['cylJr'], None],
+                'coneK': [v['coneKtopr'], v['coneKbottomr'], v['coneKh']],
+                'cylL': [v['cylNLr'], v['cylNLr'], None],
+                'cylM': [v['cylMr'], v['cylMr'], None],
+                'cylN': [v['cylNLr'], v['cylNLr'], None]
+            }
+        elif action == 'load':
+            params = vars_
+        if action in ('add', 'load'):
+            self.objects[name] = core.Bishop(**params)
+        if action == 'set':
+            del params['name']
+            del params['init_p']
+            self.objectsmenu.delete(self.curobj)
+            self.objects[self.curobj].setparams(params)
+            name = self.curobj
+        self.set_curobj(name)
+        self.objectsmenu.add_command(label = name, command = lambda : self.set_curobj(name))
         
     def projectparallel(self):
         self.prtype = "parallel"
@@ -100,21 +151,22 @@ class App():
     def projectcentral(self):
         self.prtype = "central"
         self.draw_t(lambda i: i)
-        
-    def addbutton_click(self, name, x, y, z):
-        self.objects[name] = core.Bishop(name = name, init_p = [x, y, z])
-        self.set_curobj(name)
-        self.draw_t(lambda i: i)
-        self.hide_addobjectframe()
-        self.objectsmenu.add_command(label = name, command = lambda : self.set_curobj(name))
     
     def set_curobj(self, name):
         self.curobj = name
         self.canvasframe.configure(text = "Scene -- Current object: " + name)
-    
-    def hide_addobjectframe(self):
-        self.addobjectframe.grid_remove()
-        self.leftbar.grid(row = 0, column = 0)
+        for obj in self.objects:
+            if obj == self.curobj:
+                self.color = "grey"
+                self.draw_t(lambda i: i)
+            else:
+                #dirty hack
+                self.color = "white"
+                temp = self.curobj
+                self.curobj = obj
+                self.draw_t(lambda i: i)
+                self.curobj = temp
+                self.color = "grey"
 
     def deletebutton_click(self):
         if self.curobj:
@@ -128,38 +180,23 @@ class App():
                 self.set_curobj('')
 
     def draw_t(self, fun):
-        if not self.curobj: return
-        if self.items.has_key(self.curobj):
-            for i in range(len(self.items[self.curobj])):
-                self.canvas.delete(self.items[self.curobj].pop())
-        else:
-            self.items[self.curobj] = []
-        obj = self.objects[self.curobj]
-        fun(obj)
-        for i in obj.get_t(self.prtype, self.hide):
-            self.items[self.curobj].append(self.canvas.create_polygon(i, outline = "white", fill = self.hide and "black" or ""))
-        
-    def rotate(self, e):
-        x = self.canvas.canvasx(e.x)
-        y = self.canvas.canvasy(e.y)
-        ox = self.x - x
-        oy = self.y - y
-        self.x, self.y = x, y
-        self.__rotate(ox * self.rotateangle, oy * self.rotateangle, 0)()
-            
-    def __rotate(self, ox, oy, oz):
-        return lambda : self.draw_t(lambda s: s.rotate((ox, oy, 0)))
-        
-    def scale(self, e):
-        if e.delta < 0:
-            sign = -1
-        else:
-            sign = 1
-        self.draw_t(lambda s: s.scale(self.c, self.scale_rate * sign))
+        try:
+            if not self.curobj: return
+            if self.items.has_key(self.curobj):
+                for i in range(len(self.items[self.curobj])):
+                    self.canvas.delete(self.items[self.curobj].pop())
+            else:
+                self.items[self.curobj] = []
+            obj = self.objects[self.curobj]
+            fun(obj)
+            for i in obj.get_t(self.prtype, self.hide):
+                self.items[self.curobj].append(self.canvas.create_polygon(i, outline = self.color, fill = self.hide and "black" or ""))
+        except Exception as e:
+            print e
         
     def hide_faces(self):
-        if self.hide: self.scenemenu.entryconfigure(1, label =   "Hide faces")
-        else:         self.scenemenu.entryconfigure(1, label = "Unhide faces")
+        if self.hide: self.scenemenu.entryconfigure(0, label =   "Hide faces")
+        else:         self.scenemenu.entryconfigure(0, label = "Unhide faces")
         self.hide = not self.hide
         self.draw_t(lambda i: i)
         
@@ -172,10 +209,7 @@ class App():
             l = {'objects':{}}
             execfile(filename, l)
             for key in l['objects']:
-                self.objects[key] = core.Bishop(**l['objects'][key])
-                self.set_curobj(key)
-                self.draw_t(lambda i: i)
-                self.objectsmenu.add_command(label = key, command = lambda name = key: self.set_curobj(name))
+                self.applyparams('load', l['objects'][key])
         
     def save(self):
         filename = tkFileDialog.asksaveasfilename(defaultextension=".scene")

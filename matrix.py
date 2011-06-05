@@ -1,5 +1,7 @@
 class matrix(object):
     def __init__(self,mat):
+        if mat == 1:
+            mat = [[r == c and 1 or 0 for r in range(4)] for c in range(4)]
         self.mat = mat
         self.row = len(mat)
         self.col = len(mat[0])
@@ -12,6 +14,12 @@ class matrix(object):
             for j in range(self.col):
                 self.__s += '%g\t' %(self.mat[i][j])
         return self.__s
+    
+    def __repr__(self):
+        return repr(self.mat)
+        
+    def __eq__(self, y):
+        return self.mat == y.mat
     
     def __mul__(self, other):
         if isinstance(other,int) or isinstance(other,float):
