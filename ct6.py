@@ -1,21 +1,20 @@
 import Tkinter as tk
 import tkFileDialog
+import tkMessageBox
 import core
 
 class App():
     def __init__(self, master):
         self.items = {}
-        self.x = 0
-        self.y = 0
         self.hide = False
         self.color = "white"
-        self.rotateangle = 1
-        self.scale_rate = 0.05
         self.objects = {}
         self.curobj = ''
         self.prtype = "parallel" #type of projection
+        self.cam = None
     
         self.master = master
+        self.master.title("ct6")
         self.mainmenu = tk.Menu(self.master)
         self.master.config(menu = self.mainmenu)
         self.filemenu = tk.Menu(self.mainmenu, tearoff=0)
@@ -32,43 +31,75 @@ class App():
         self.objectsmenu = tk.Menu(self.mainmenu, tearoff=0)
         self.mainmenu.add_cascade(label = "Objects", menu = self.objectsmenu)
 
-        self.addobjectframe = tk.LabelFrame(self.master, text = "Add object")
         self.leftbar = tk.LabelFrame(self.master, text = "Changes")
         self.leftbar.grid(row = 0, column = 0, sticky=tk.N+tk.E+tk.S+tk.W)
+        
+        self.allobjcbvar = tk.IntVar()
+        self.allobjcb = tk.Checkbutton(self.leftbar, text = "All objects", variable = self.allobjcbvar)
+        self.allobjcb.grid(row = 0, column = 0)
         
         axes = ("x", "y", "z")
         frames = ("rotate", "move", "scale")
         for f in frames:
             exec 'self.%(f)sframe = tk.LabelFrame(self.leftbar, text = "%(f)s".title())' % {"f":f}
-            exec 'self.%(f)sframe.grid(row = frames.index("%(f)s"), column = 0)' % {"f":f}
+            exec 'self.%(f)sframe.grid(row = frames.index("%(f)s") + 1, column = 0)' % {"f":f}
             for a in axes:
                 exec '%(f)s%(a)slabel = tk.Label(self.%(f)sframe, text = "%(a)s")' % {"a":a, "f":f}
                 exec '%(f)s%(a)slabel.grid(row = axes.index("%(a)s"), column = 0)' % {"a":a, "f":f}
-                exec 'self.%(f)s%(a)sevar = tk.StringVar(value = "0")' % {"a":a, "f":f}
+                exec 'self.%(f)s%(a)sevar =  tk.DoubleVar()' % {"a":a, "f":f}
                 exec '%(f)s%(a)se = tk.Entry(self.%(f)sframe, textvariable = self.%(f)s%(a)sevar)' % {"a":a, "f":f}
                 exec '%(f)s%(a)se.grid(row = axes.index("%(a)s"), column = 1)' % {"a":a, "f":f}
-            exec 'self.%(f)sbclick = lambda self = self: self.draw_t(\
+            exec 'if f == "scale": scalebclick = self.scaleb_click'
+            exec 'if f in ("rotate", "move"): %(f)sbclick = lambda self = self: self.draw_t(\
                 lambda i: i.%(f)s([float(self.%(f)sxevar.get()), float(self.%(f)syevar.get()), float(self.%(f)szevar.get())]))' % {"f":f}
-            exec '%(f)sb = tk.Button(self.%(f)sframe, text = "%(f)s".title(), command = self.%(f)sbclick)' % {"f":f}
+            exec '%(f)sb = tk.Button(self.%(f)sframe, text = "%(f)s".title(), command = %(f)sbclick)' % {"f":f}
             exec '%(f)sb.grid(row = 3, column = 1, sticky = tk.E)' % {"f":f}
         
         self.deletebutton = tk.Button(self.leftbar, text = "Delete", command = self.deletebutton_click)
-        self.deletebutton.grid(row = 3, column = 0)
+        self.deletebutton.grid(row = 4, column = 0)
+        
+        self.camlf = tk.LabelFrame(self.leftbar, text = "Camera")
+        self.camlf.grid(row = 5, column = 0, sticky=tk.N+tk.E+tk.S+tk.W)
+        self.usecamcbvar = tk.IntVar()
+        self.usecamcb = tk.Checkbutton(self.camlf, text = "Use camera", variable = self.usecamcbvar, command = self.usecamcb_click)
+        self.usecamcb.grid(row = 0, column = 0)
+                
+        camp = ('Position x', 'Position y', 'Position z', 'Direction x', 'Direction y', 'Direction z',
+            'Near clip z', 'Far clip z', 'Viewport width', 'Viewport Height', 'Angle of view')
+        campv = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 50.0, 500.0, 580.0, 580.0, 90.0)
+        self.camvars = {}
+        for p in camp:
+            name = "".join(p.lower().split())
+            exec 'self.%(n)sl = tk.Label(self.camlf, text = "%(p)s", state = "disabled")' % {'n':name, 'p':p}
+            exec 'self.%(n)sl.grid(row = camp.index("%(p)s") + 1, column = 0, sticky = tk.E)' % {'n':name, 'p':p}
+            exec 'self.camvars["%(n)s"] = tk.DoubleVar(value = campv[camp.index("%(p)s")])' % {'n':name, 'p':p}
+            exec 'self.%(n)se = tk.Entry(self.camlf, textvariable = self.camvars["%(n)s"], width = 8, state = "disabled")' % {'n':name}
+            exec 'self.%(n)se.grid(row = camp.index("%(p)s") + 1, column = 1)' % {'n':name, 'p':p}
+        
+        self.setcamb = tk.Button(self.camlf, text = "Set cam", command = self.setcamb_click, state = "disabled")
+        self.setcamb.grid(row = 1 + len(camp) + 1, column = 1)
+        
         self.draw_t(lambda i: i)
         self.canvasframe = tk.LabelFrame(self.master, text = "Scene")
-        self.canvasframe.grid(row = 0, column = 1)
-        self.canvas = tk.Canvas(self.canvasframe, height = 500, width = 500, bg = "black")
-        self.canvas.grid(row = 0, column = 0)
+        self.canvasframe.grid(row = 0, column = 1, sticky=tk.N+tk.E+tk.S+tk.W)
+        self.canvas = tk.Canvas(self.canvasframe, width = 580, height = 580, bg = "black")
+        self.canvas.grid(row = 0, column = 0, sticky=tk.N+tk.E+tk.S+tk.W)
+        
+        snames = ('positionx', 'directionx', 'directiony', 'directionz')
+        for i in range(len(snames)):
+            exec 'self.%(n)sscale = tk.Scale(self.canvasframe, orient = "horizontal",\
+                from_ = -180, to = 180, length = 200, command = lambda var, self = self: self.scalecam("%(n)s", var))' % {'n':snames[i]}
+            exec 'self.%(n)sscale.grid(row = i + 1, column = 0)' % {'n':snames[i]}
         
         self.paramframe = tk. LabelFrame(self.master, text = "Parameters")
         self.paramframe.grid(row = 0, column = 2, sticky=tk.N+tk.E+tk.S+tk.W)
                 
         pvars = {}
         namelabel = tk.Label(self.paramframe, text = "Object name")
-        namelabel.grid(row = 0, column = 0, sticky=tk.N+tk.E+tk.S+tk.W)
+        namelabel.grid(row = 0, column = 0, sticky = tk.E)
         nameevar = tk.StringVar(value = "obj")
         namee = tk.Entry(self.paramframe, textvariable = nameevar, width = 10)
-        namee.grid(row = 0, column = 1)
+        namee.grid(row = 0, column = 1, sticky = tk.W)
         pvars["name"] = namee.get
         
         initpointframe = tk.LabelFrame(self.paramframe, text = "Init point")
@@ -78,23 +109,23 @@ class App():
             var = "".join(n.split())
             exec '%(v)sl = tk.Label(initpointframe, text = "%(n)s")' % {'v': var, 'n': n}
             exec '%(v)sl.grid(row = names.index(n), column = 0)' % {'v': var}
-            exec '%(v)sevar = tk.StringVar(value = "0")' % {'v':var}
+            exec '%(v)sevar =  tk.DoubleVar()' % {'v':var}
             exec '%(v)se = tk.Entry(initpointframe, textvariable = %(v)sevar)' % {'v': var}
-            exec '%(v)se.grid(row = names.index(n), column = 1)' % {'v': var}
+            exec '%(v)se.grid(row = names.index(n), column = 1, sticky = tk.E)' % {'v': var}
             exec 'pvars["%(v)s"] = %(v)se.get' % {'v': var} #add 'get' function to pvars
             
-        nos = {'cyl A r': 10, 'cone B bottom r cone C top r': 30, 'cone C bottom r cone B top r': 10,
-               'cone B h': 40, 'cone C h': 40, 'cyl D r': 15, 'cone I top r cyl E G r': 10,
-               'cyl F r': 30, 'cyl H r': 50, 'cone I h': 100, 'cyl J r': 40,
-               'cone K h': 40, 'cone K top r': 40, 'cone K bottom r': 70, 'cyl M r': 65, 'cyl N L r': 70}
+        nos = ('cyl A r', 'cone B bottom r cone C top r', 'cone C bottom r cone B top r', 'cone B h',
+               'cone C h', 'cyl D r', 'cone I top r cyl E G r', 'cyl F r', 'cyl H r', 'cone I h', 'cyl J r',
+               'cone K h', 'cone K top r', 'cone K bottom r', 'cyl M r', 'cyl N L r')
+        nosv = (10.0, 30.0, 10.0, 40.0, 40.0, 15.0, 10.0, 30.0, 50.0, 100.0, 40.0, 40.0, 40.0, 70.0, 65.0, 70.0)
         i = 0
         for n in nos:
             var = "".join(n.split())
             exec '%(v)sl = tk.Label(self.paramframe, text = "%(n)s")' % {'v': var, 'n': n}
-            exec '%(v)sl.grid(row = i + 2, column = 0)' % {'v': var}
-            exec '%(v)sevar = tk.StringVar(value = "%(value)s")' % {'v':var, 'value': str(nos[n])}
-            exec '%(v)se = tk.Entry(self.paramframe, textvariable = %(v)sevar)' % {'v': var}
-            exec '%(v)se.grid(row = i + 2, column = 1)' % {'v': var}
+            exec '%(v)sl.grid(row = i + 2, column = 0, sticky = tk.E)' % {'v': var}
+            exec '%(v)sevar =  tk.DoubleVar(value = "%(value)s")' % {'v':var, 'value': nosv[nos.index(n)]}
+            exec '%(v)se = tk.Entry(self.paramframe, textvariable = %(v)sevar, width = 10)' % {'v': var}
+            exec '%(v)se.grid(row = i + 2, column = 1, sticky = tk.W)' % {'v': var}
             exec 'pvars["%(v)s"] = %(v)se.get' % {'v': var} #add 'get' function to pvars
             i += 1
         
@@ -107,6 +138,9 @@ class App():
 
     def applyparams(self, action, vars_):
         name = callable(vars_['name']) and vars_['name']() or vars_['name']
+        if action == 'add' and name in self.objects.keys():
+            tkMessageBox.showerror("Wrong name!", 'Name "' + name + '" already exist.')
+            return
         if action in ('add', 'set'):
             v = {}
             for key in vars_ :
@@ -134,12 +168,18 @@ class App():
         elif action == 'load':
             params = vars_
         if action in ('add', 'load'):
-            self.objects[name] = core.Bishop(**params)
+            try:
+                self.objects[name] = core.Bishop(**params)
+            except core.CoreException as e:
+                tkMessageBox.showerror("Invalid parameter", e[0])
         if action == 'set':
             del params['name']
             del params['init_p']
             self.objectsmenu.delete(self.curobj)
-            self.objects[self.curobj].setparams(params)
+            try:
+                self.objects[self.curobj].setparams(params)
+            except core.CoreException as e:
+                tkMessageBox.showerror("Invalid parameter", e[0])
             name = self.curobj
         self.set_curobj(name)
         self.objectsmenu.add_command(label = name, command = lambda : self.set_curobj(name))
@@ -167,7 +207,14 @@ class App():
                 self.draw_t(lambda i: i)
                 self.curobj = temp
                 self.color = "grey"
-
+        
+    def scaleb_click(self):
+        x, y, z = self.scalexevar.get(), self.scaleyevar.get(), self.scalezevar.get()
+        if x < 0 or y < 0 or z < 0:
+            tkMessageBox.showerror('Wrong scale rate', 'Scale rate can"t be negative')
+            return
+        self.draw_t(lambda i: i.scale([x, y, z]))
+        
     def deletebutton_click(self):
         if self.curobj:
             for i in range(len(self.items[self.curobj])):
@@ -179,20 +226,55 @@ class App():
             else:
                 self.set_curobj('')
 
+    def usecamcb_click(self):
+        if self.usecamcbvar.get() == 1:
+            for i in self.camlf.winfo_children():
+                i.config(state = "normal")
+        else:
+            self.cam = None
+            for i in self.camlf.winfo_children():
+                if i != self.usecamcb:
+                    i.config(state = "disabled")
+        self.draw_t(lambda i: i)
+
+    def scalecam(self, typ, var):
+        if self.usecamcbvar.get() == 1:
+            self.camvars[typ].set(var)
+            self.setcamb_click()
+
+    def setcamb_click(self):
+        self.cam = core.Camera(
+            pos = [self.camvars["positionx"].get(),
+                self.camvars["positiony"].get(),
+                self.camvars["positionz"].get()],
+            dir_ = [self.camvars["directionx"].get(),
+                self.camvars["directiony"].get(),
+                self.camvars["directionz"].get()],
+            near_clip_z = self.camvars["nearclipz"].get(),
+            far_clip_z = self.camvars["farclipz"].get(),
+            viewport_width = self.camvars["viewportwidth"].get(),
+            viewport_height = self.camvars["viewportheight"].get(),
+            fov = self.camvars["angleofview"].get())
+        print repr(self.cam)
+        self.draw_t(lambda i: i)
+
     def draw_t(self, fun):
-        try:
-            if not self.curobj: return
-            if self.items.has_key(self.curobj):
-                for i in range(len(self.items[self.curobj])):
-                    self.canvas.delete(self.items[self.curobj].pop())
+        if not self.curobj: return
+        objects = [self.curobj]
+        if self.allobjcbvar.get() == 1:
+            objects = [obj for obj in self.objects]
+        for k in objects:
+            if self.items.has_key(k):
+                for i in range(len(self.items[k])):
+                    self.canvas.delete(self.items[k].pop())
             else:
-                self.items[self.curobj] = []
-            obj = self.objects[self.curobj]
+                self.items[k] = []
+            obj = self.objects[k]
             fun(obj)
-            for i in obj.get_t(self.prtype, self.hide):
-                self.items[self.curobj].append(self.canvas.create_polygon(i, outline = self.color, fill = self.hide and "black" or ""))
-        except Exception as e:
-            print e
+            if self.cam: self.cam.cull_obj(obj)
+            if obj.state == 'visible':
+                for i in obj.get_t(self.prtype, self.hide, self.cam):
+                    self.items[k].append(self.canvas.create_polygon(i, outline = self.color, fill = self.hide and "black" or ""))
         
     def hide_faces(self):
         if self.hide: self.scenemenu.entryconfigure(0, label =   "Hide faces")
@@ -206,10 +288,11 @@ class App():
             for key in self.objects:
                 self.objectsmenu.delete(key)
             self.objects.clear()
-            l = {'objects':{}}
+            l = {'objects':{}, 'cam':{}}
             execfile(filename, l)
             for key in l['objects']:
                 self.applyparams('load', l['objects'][key])
+            self.cam = core.Camera(l['cam'])
         
     def save(self):
         filename = tkFileDialog.asksaveasfilename(defaultextension=".scene")
@@ -217,7 +300,8 @@ class App():
             s = 'objects = {\\\n'
             for obj in self.objects:
                 s += '"' + obj + '": ' + repr(self.objects[obj]) + ',\n'
-            open(filename, "w").write(s + '}')
+            s += '}\ncam = ' + repr(self.cam)
+            open(filename, "w").write(s)
 
 if __name__ == "__main__":
     root = tk.Tk()

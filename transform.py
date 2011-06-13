@@ -2,6 +2,24 @@ from math import cos, sin, pi
 from math import radians as rad
 from matrix import matrix as mat
 
+def camat((ox, oy, oz)):
+    cosa, sina = cos(rad(-oz)), sin(rad(-oz))
+    cosb, sinb = cos(rad(-oy)), sin(rad(-oy))
+    cosc, sinc = cos(rad(-ox)), sin(rad(-ox))
+    mat_oz = mat([[ cosa, sina, 0, 0],
+                       [-sina, cosa, 0, 0],
+                       [    0,    0, 1, 0],
+                       [    0,    0, 0, 1]])
+    mat_oy = mat([[cosb, 0, -sinb, 0],
+                       [   0, 1,     0, 0],
+                       [sinb, 0,  cosb, 0],
+                       [   0, 0,     0, 1]])
+    mat_ox = mat([[1,     0,    0, 0],
+                       [0,  cosc, sinc, 0],
+                       [0, -sinc, cosc, 0],
+                       [0,     0,    0, 1]])
+    return (mat_oz, mat_oy, mat_ox)
+
 def project(p, prtype, c = 1000.0):
     if prtype == "parallel":
         return [p[0], p[1]]
